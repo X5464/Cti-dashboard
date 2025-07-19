@@ -3,15 +3,21 @@ import time
 import json
 import re
 from flask import Flask, request, jsonify
-from flask_cors import CORS
+from flask_cors import CORS  # ❌ Remove duplicate import
 from pymongo import MongoClient
 import requests
 from dotenv import load_dotenv
 
 load_dotenv()
 
+# ✅ Create Flask app FIRST
 app = Flask(__name__)
-CORS(app)
+
+# ✅ Configure CORS AFTER app creation with proper origins
+CORS(app, origins=[
+    "http://localhost:3000",  # Local development
+    "https://cti-dashboard-frontend.onrender.com"  # Production frontend URL
+])
 
 # MongoDB connection
 try:
@@ -468,7 +474,6 @@ def get_comprehensive_sources(vt_data, abuse_data, input_type):
     
     return sources if sources else ["No comprehensive data sources available"]
 
-# Keep existing endpoints for compatibility
 @app.route("/api/history", methods=["GET"])
 def get_history():
     try:
