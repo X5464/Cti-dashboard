@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: cti-dashboard-backend
+    env: python
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: gunicorn backend.app:app --bind 0.0.0.0:\$PORT
+  - type: static
+    name: cti-dashboard-frontend
+    env: static
+    plan: free
+    buildCommand: cd frontend && npm ci && npm run build
+    staticPublishPath: frontend/build
