@@ -3,20 +3,20 @@ import time
 import json
 import re
 from flask import Flask, request, jsonify
-from flask_cors import CORS  # ❌ Remove duplicate import
+from flask_cors import CORS
 from pymongo import MongoClient
 import requests
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# ✅ Create Flask app FIRST
+# Create Flask app FIRST
 app = Flask(__name__)
 
-# ✅ Configure CORS AFTER app creation with proper origins
+# Configure CORS AFTER app creation
 CORS(app, origins=[
     "http://localhost:3000",  # Local development
-    "https://cti-dashboard-frontend.onrender.com"  # Production frontend URL
+    "https://cti-dashboard-frontend.onrender.com"  # Production frontend
 ])
 
 # MongoDB connection
@@ -356,15 +356,21 @@ def calculate_comprehensive_threat_score(vt_data, abuse_data, input_type):
             "error": str(e)
         }
 
-@app.route("/")
+# ✅ FIXED: Support both GET and HEAD requests for Render health checks
+@app.route("/", methods=["GET", "HEAD"])
 def home():
-    return {
+    """Health check endpoint that responds to both GET and HEAD requests"""
+    if request.method == "HEAD":
+        return "", 200  # Return empty response for HEAD requests (health checks)
+    
+    # Return JSON for GET requests
+    return jsonify({
         "message": "CTI Dashboard API - Comprehensive Analysis Ready",
         "status": "success",
         "version": "3.0",
         "features": ["VirusTotal Full Analysis", "AbuseIPDB Detailed Reports", "Comprehensive Threat Scoring"],
         "timestamp": time.time()
-    }
+    })
 
 @app.route("/api/lookup", methods=["POST"])
 def comprehensive_lookup():
@@ -476,6 +482,7 @@ def get_comprehensive_sources(vt_data, abuse_data, input_type):
 
 @app.route("/api/history", methods=["GET"])
 def get_history():
+    """Get scan history"""
     try:
         if scans is None:
             return jsonify({"error": "Database not available"}), 503
@@ -497,6 +504,7 @@ def get_history():
 
 @app.route("/api/stats", methods=["GET"])
 def get_stats():
+    """Get comprehensive dashboard statistics"""
     try:
         if scans is None:
             return jsonify({"error": "Database not available"}), 503
@@ -525,8 +533,10 @@ def get_stats():
             "threat_distribution": {"high": 0, "medium": 0, "low": 0}
         }), 500
 
+# ✅ FIXED: Dynamic port handling for Render deployment
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))
-    print(f"🚀 Comprehensive CTI Dashboard starting on port {port}")
+    port = int(os.environ.get("PORT", 10000))  # Use Render's PORT or default to 10000
+    print(f"🚀 CTI Dashboard starting on port {port}")
     print(f"📊 Features: Full VirusTotal + AbuseIPDB Analysis")
+    print(f"🌐 Server binding to 0.0.0.0:{port}")
     app.run(host="0.0.0.0", port=port, debug=False)
