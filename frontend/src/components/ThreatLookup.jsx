@@ -458,3 +458,30 @@ export default function ThreatLookup({ onNewScan, compact = false }) {
                       <span>{factor}</span>
                     </li>
                   )) || <li className="text-gray-400">No significant risk factors detected</li>}
+                </ul>
+              </div>
+              
+              <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-6">
+                <h4 className="text-lg font-semibold text-green-300 mb-4">✅ Recommendations</h4>
+                <ul className="space-y-2 text-sm">
+                  {result.professional_insights?.security_recommendations?.map((rec, index) => (
+                    <li key={index} className="text-green-200 flex items-start space-x-2">
+                      <span className="text-green-400 mt-1">•</span>
+                      <span>{rec}</span>
+                    </li>
+                  )) || <li className="text-gray-400">Standard monitoring procedures sufficient</li>}
+                </ul>
+              </div>
+            </div>
+
+            {/* Business Impact */}
+            <div className="bg-gradient-to-r from-orange-900/30 to-red-900/30 border border-orange-500/50 rounded-xl p-6">
+              <h4 className="text-xl font-semibold text-orange-300 mb-4">💼 Business Impact Assessment</h4>
+              <p className="text-gray-200 leading-relaxed">{result.professional_insights?.business_impact}</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
