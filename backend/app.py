@@ -36,10 +36,12 @@ try:
     # Test connection
     client.admin.command('ping')
     print("✅ MongoDB connection successful!")
+    mongodb_connected = True
 except Exception as e:
     print(f"❌ MongoDB connection failed: {e}")
     # Fallback to in-memory storage
     scans_collection = None
+    mongodb_connected = False
 
 # In-memory backup
 scan_history = []
@@ -48,7 +50,7 @@ active_monitors = set()
 def save_scan_to_db(scan_data):
     """Save scan data to MongoDB or in-memory backup"""
     try:
-        if scans_collection:
+        if scans_collection is not None:  # ✅ FIXED: Use 'is not None'
             scans_collection.insert_one(scan_data)
             print(f"💾 Scan saved to MongoDB: {scan_data['scan_id']}")
         else:
@@ -63,7 +65,7 @@ def save_scan_to_db(scan_data):
 def get_scans_from_db(limit=50):
     """Get scans from MongoDB or in-memory backup"""
     try:
-        if scans_collection:
+        if scans_collection is not None:  # ✅ FIXED: Use 'is not None'
             scans = list(scans_collection.find().sort("timestamp", -1).limit(limit))
             # Convert ObjectId to string for JSON serialization
             for scan in scans:
@@ -504,7 +506,7 @@ def home():
         "api_status": {
             "virustotal": "✅ Active" if VT_API_KEY else "❌ Not Configured",
             "abuseipdb": "✅ Active" if ABUSEIPDB_API_KEY else "❌ Not Configured",
-            "mongodb": "✅ Connected" if scans_collection else "❌ Disconnected"
+            "mongodb": "✅ Connected" if mongodb_connected else "❌ Disconnected"  # ✅ FIXED
         },
         "timestamp": time.time()
     })
@@ -637,7 +639,7 @@ def get_scan_history():
         return jsonify({
             "scans": formatted_scans,
             "total": len(scans),
-            "database_status": "MongoDB" if scans_collection else "In-Memory",
+            "database_status": "MongoDB" if mongodb_connected else "In-Memory",  # ✅ FIXED
             "status": "success"
         })
         
@@ -712,7 +714,7 @@ def get_comprehensive_statistics():
             "system_performance": {
                 "threat_detection_accuracy": "96.8%",
                 "average_processing_time": "< 15 seconds",
-                "database_status": "MongoDB Connected" if scans_collection else "In-Memory Storage",
+                "database_status": "MongoDB Connected" if mongodb_connected else "In-Memory Storage",  # ✅ FIXED
                 "api_integrations": 4,
                 "uptime": "99.9%"
             },
@@ -801,7 +803,7 @@ if __name__ == "__main__":
     print(f"🌐 Port: {port}")
     print(f"🛡️ VirusTotal: {'✅ Active' if VT_API_KEY else '❌ Missing API Key'}")
     print(f"🚨 AbuseIPDB: {'✅ Active' if ABUSEIPDB_API_KEY else '❌ Missing API Key'}")
-    print(f"💾 MongoDB: {'✅ Connected' if scans_collection else '❌ Using In-Memory'}")
+    print(f"💾 MongoDB: {'✅ Connected' if mongodb_connected else '❌ Using In-Memory'}")  # ✅ FIXED
     print(f"🔍 Multi-Source Intelligence: READY")
     print(f"📊 Professional Reporting: ENABLED")
     print(f"=== SYSTEM READY FOR THREAT ANALYSIS ===\n")
