@@ -390,7 +390,7 @@ export default function Dashboard() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="text-center">
               <p className="text-gray-300 text-lg">
-                🧠 Developed by <span className="text-transparent bg-gradient-to-r from-cyber-blue to-cyber-purple bg-clip-text font-semibold">Professional Security Team</span>
+                🧠 Developed by <span className="text-transparent bg-gradient-to-r from-cyber-blue to-cyber-purple bg-clip-text font-semibold">Rajarshi Chakraborty - Cybersecurity Intern</span>
               </p>
               <p className="text-gray-400 mt-2">
                 Advanced Threat Intelligence • Real Location Detection • Professional Grade Security
