@@ -6,7 +6,7 @@ const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 export default function ThreatLookup({ onNewScan, compact = false }) {
   const [input, setInput] = useState('');
   const [result, setResult] = useState(null);
-  const [loading, set
+  const [loading, setLoading] = useState(false); // ← This was the incomplete line
   const [error, setError] = useState('');
 
   const detectInputType = (input) => {
@@ -17,8 +17,7 @@ export default function ThreatLookup({ onNewScan, compact = false }) {
     return 'Unknown';
   };
 
-  const handleLookup = async (e) => {
-    e.preventDefault();
+  const handleLpreventDefault();
     
     const trimmedInput = input.trim();
     if (!trimmedInput) {
@@ -311,4 +310,4 @@ export default function ThreatLookup({ onNewScan, compact = false }) {
       )}
     </div>
   );
-} // ← This closing brace was missing!
+}
