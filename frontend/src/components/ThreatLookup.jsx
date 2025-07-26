@@ -6,7 +6,7 @@ const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 export default function ThreatLookup({ onNewScan, compact = false }) {
   const [input, setInput] = useState('');
   const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, set
   const [error, setError] = useState('');
 
   const detectInputType = (input) => {
@@ -80,6 +80,30 @@ export default function ThreatLookup({ onNewScan, compact = false }) {
     };
   };
 
+  // Safe helper function to process location data
+  const safeProcessLocationData = (locationData) => {
+    if (!locationData || typeof locationData !== 'object') {
+      return {
+        country: 'Unknown',
+        city: 'Unknown', 
+        region: 'Unknown',
+        isp: 'Unknown',
+        organization: 'Unknown'
+      };
+    }
+    
+    return {
+      country: locationData.country || 'Unknown',
+      city: locationData.city || 'Unknown',
+      region: locationData.region || 'Unknown', 
+      isp: locationData.isp || 'Unknown',
+      organization: locationData.organization || 'Unknown',
+      latitude: locationData.latitude || 0,
+      longitude: locationData.longitude || 0,
+      timezone: locationData.timezone || 'Unknown'
+    };
+  };
+
   if (compact) {
     return (
       <div>
@@ -134,9 +158,9 @@ export default function ThreatLookup({ onNewScan, compact = false }) {
                 {getThreatDisplay(result.threat_analysis).icon} {result.threat_analysis?.score || 0}/100
               </span>
             </div>
-            {result.intelligence_sources?.geolocation?.country && (
+            {result.intelligence_sources?.geolocation && (
               <div className="text-xs text-gray-400">
-                📍 {result.intelligence_sources.geolocation.city}, {result.intelligence_sources.geolocation.country}
+                📍 {safeProcessLocationData(result.intelligence_sources.geolocation).city}, {safeProcessLocationData(result.intelligence_sources.geolocation).country}
               </div>
             )}
           </div>
@@ -243,269 +267,48 @@ export default function ThreatLookup({ onNewScan, compact = false }) {
       {result && (
         <div className={`rounded-xl p-8 border-2 backdrop-blur-sm ${getThreatDisplay(result.threat_analysis).bg} ${getThreatDisplay(result.threat_analysis).shadow}`}>
           {/* Header */}
-          <div className="border-b border-white/10 pb-6 mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-semibold text-white flex items-center space-x-3">
-                <span>{getThreatDisplay(result.threat_analysis).icon}</span>
-                <span>Professional Threat Assessment</span>
-              </h3>
-              <div className="text-sm text-gray-300 bg-surface/50 px-3 py-1 rounded-full">
-                ID: {result.scan_id}
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="bg-surface/30 p-6 rounded-xl border border-border/30">
-                <div className="text-sm text-gray-300 mb-3">Target Analysis</div>
-                <div className="font-mono text-sm bg-surface/50 p-3 rounded-lg border border-border/30">
-                  <span className="text-cyber-blue">{result.input}</span>
-                </div>
-                <div className="text-xs text-gray-400 mt-3">
-                  Type: <span className="text-cyber-blue font-medium">{result.input_type?.toUpperCase()}</span>
-                  {result.target_ip !== result.input && (
-                    <div className="mt-1">
-                      Resolved IP: <span className="text-cyber-green font-mono">{result.target_ip}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="bg-surface/30 p-6 rounded-xl border border-border/30">
-                <div className="text-sm text-gray-300 mb-3">Threat Assessment</div>
-                <div className="flex items-center space-x-4">
-                  <span className="text-4xl">{getThreatDisplay(result.threat_analysis).icon}</span>
-                  <div>
-                    <div className="text-3xl font-bold text-white">{result.threat_analysis?.score || 0}/100</div>
-                    <div className={`text-sm font-medium ${getThreatDisplay(result.threat_analysis).color}`}>
-                      {getThreatDisplay(result.threat_analysis).level}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-surface/30 p-6 rounded-xl border border-border/30">
-                <div className="text-sm text-gray-300 mb-3">Analysis Quality</div>
-                <div className="space-y-2 text-sm">
-                  <div><span className="text-gray-400">Confidence:</span> <span className="text-white">{result.threat_analysis?.confidence || 0}%</span></div>
-                  <div><span className="text-gray-400">Data Sources:</span> <span className="text-white">{result.scan_metadata?.data_sources || 0}</span></div>
-                  <div><span className="text-gray-400">Processing:</span> <span className="text-green-400">{result.scan_metadata?.processing_time}</span></div>
-                </div>
-              </div>
-            </div>
+          <div className="border-b border-white/10 pb-4 mb-6 flex justify-between items-center">
+            <span className="font-mono font-semibold text-cyber-blue text-lg">
+              {result.input.length > 40 ? `${result.input.substring(0, 40)}...` : result.input}
+            </span>
+            <span className={`px-4 py-2 rounded-full text-xl font-semibold ${getThreatDisplay(result.threat_analysis).color}`} title={getThreatDisplay(result.threat_analysis).level}>
+              {getThreatDisplay(result.threat_analysis).icon} {result.threat_analysis?.score || 0}/100
+            </span>
           </div>
 
-          {/* Executive Summary */}
-          <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/50 rounded-xl p-6 mb-8">
-            <h4 className="text-xl font-semibold text-purple-300 mb-4">📋 Executive Summary</h4>
-            <p className="text-gray-200 leading-relaxed">{result.professional_insights?.executive_summary}</p>
-          </div>
-
-          {/* Intelligence Sources */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            {/* VirusTotal */}
-            {result.intelligence_sources?.virustotal && !result.intelligence_sources.virustotal.error && (
-              <div className="bg-gradient-to-r from-red-500/10 to-pink-500/10 border border-red-500/30 rounded-xl p-6">
-                <h4 className="text-lg font-semibold text-red-300 mb-4 flex items-center space-x-2">
-                  <span>🛡️</span>
-                  <span>VirusTotal Analysis</span>
-                </h4>
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Detection Rate:</span>
-                    <span className={`font-bold ${result.intelligence_sources.virustotal.malicious_count > 0 ? 'text-red-400' : 'text-green-400'}`}>
-                      {result.intelligence_sources.virustotal.malicious_count}/{result.intelligence_sources.virustotal.total_engines}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Reputation:</span>
-                    <span className="text-white">{result.intelligence_sources.virustotal.reputation || 'Unknown'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Suspicious:</span>
-                    <span className="text-yellow-400">{result.intelligence_sources.virustotal.suspicious_count}</span>
-                  </div>
-                  {result.intelligence_sources.virustotal.tags?.length > 0 && (
-                    <div>
-                      <span className="text-gray-400">Tags:</span>
-                      <div className="mt-1 space-x-1">
-                        {result.intelligence_sources.virustotal.tags.slice(0, 3).map((tag, index) => (
-                          <span key={index} className="inline-block px-2 py-1 bg-red-500/20 text-red-300 rounded text-xs">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* AbuseIPDB */}
-            {result.intelligence_sources?.abuseipdb && !result.intelligence_sources.abuseipdb.error && (
-              <div className="bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/30 rounded-xl p-6">
-                <h4 className="text-lg font-semibold text-orange-300 mb-4 flex items-center space-x-2">
-                  <span>🚨</span>
-                  <span>AbuseIPDB Analysis</span>
-                </h4>
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Abuse Confidence:</span>
-                    <span className={`font-bold ${result.intelligence_sources.abuseipdb.abuse_confidence > 25 ? 'text-red-400' : 'text-green-400'}`}>
-                      {result.intelligence_sources.abuseipdb.abuse_confidence}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Total Reports:</span>
-                    <span className="text-white">{result.intelligence_sources.abuseipdb.total_reports}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Distinct Users:</span>
-                    <span className="text-white">{result.intelligence_sources.abuseipdb.num_distinct_users}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Usage Type:</span>
-                    <span className="text-white">{result.intelligence_sources.abuseipdb.usage_type}</span>
-                  </div>
-                  {result.intelligence_sources.abuseipdb.is_whitelisted && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Status:</span>
-                      <span className="text-green-400">✅ Whitelisted</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Geolocation */}
-            {result.intelligence_sources?.geolocation && !result.intelligence_sources.geolocation.error && (
-              <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/30 rounded-xl p-6">
-                <h4 className="text-lg font-semibold text-blue-300 mb-4 flex items-center space-x-2">
-                  <span>🌍</span>
-                  <span>Geographic Intelligence</span>
-                </h4>
-                <div className="space-y-3 text-sm">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-gray-400">Country:</span>
-                      <div className="text-white font-semibold">{result.intelligence_sources.geolocation.country}</div>
-                    </div>
-                    <div>
-                      <span className="text-gray-400">City:</span>
-                      <div className="text-white font-semibold">{result.intelligence_sources.geolocation.city}</div>
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">ISP:</span>
-                    <div className="text-white">{result.intelligence_sources.geolocation.isp}</div>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">Organization:</span>
-                    <div className="text-white">{result.intelligence_sources.geolocation.organization}</div>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">Coordinates:</span>
-                    <div className="text-cyber-blue font-mono text-xs">
-                      {result.intelligence_sources.geolocation.latitude}, {result.intelligence_sources.geolocation.longitude}
-                    </div>
-                  </div>
-                  {(result.intelligence_sources.geolocation.is_hosting || result.intelligence_sources.geolocation.is_proxy) && (
-                    <div className="mt-3 space-y-1">
-                      {result.intelligence_sources.geolocation.is_hosting && (
-                        <span className="inline-block px-2 py-1 bg-yellow-500/20 text-yellow-300 rounded text-xs">
-                          🏗️ Hosting Service
-                        </span>
-                      )}
-                      {result.intelligence_sources.geolocation.is_proxy && (
-                        <span className="inline-block px-2 py-1 bg-red-500/20 text-red-300 rounded text-xs ml-2">
-                          🔒 Proxy/VPN
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Shodan */}
-            {result.intelligence_sources?.shodan && !result.intelligence_sources.shodan.error && (
-              <div className="bg-gradient-to-r from-purple-500/10 to-violet-500/10 border border-purple-500/30 rounded-xl p-6">
-                <h4 className="text-lg font-semibold text-purple-300 mb-4 flex items-center space-x-2">
-                  <span>🔍</span>
-                  <span>Infrastructure Analysis</span>
-                </h4>
-                <div className="space-y-3 text-sm">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-gray-400">Open Ports:</span>
-                      <div className="text-white font-bold">{result.intelligence_sources.shodan.open_ports?.length || 0}</div>
-                    </div>
-                    <div>
-                      <span className="text-gray-400">Vulnerabilities:</span>
-                      <div className="text-white font-bold">{result.intelligence_sources.shodan.vulnerabilities?.length || 0}</div>
-                    </div>
-                  </div>
-                  
-                  {result.intelligence_sources.shodan.open_ports?.length > 0 && (
-                    <div>
-                      <span className="text-gray-400">Detected Ports:</span>
-                      <div className="text-cyber-blue font-mono text-xs mt-1">
-                        {result.intelligence_sources.shodan.open_ports.slice(0, 10).join(', ')}
-                        {result.intelligence_sources.shodan.open_ports.length > 10 && '...'}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {result.intelligence_sources.shodan.service_tags?.length > 0 && (
-                    <div>
-                      <span className="text-gray-400">Service Tags:</span>
-                      <div className="mt-1 space-x-1">
-                        {result.intelligence_sources.shodan.service_tags.slice(0, 5).map((tag, index) => (
-                          <span key={index} className="inline-block px-2 py-1 bg-surface/50 text-gray-300 rounded text-xs">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Risk Factors & Recommendations */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6">
-              <h4 className="text-lg font-semibold text-red-300 mb-4">⚠️ Identified Risk Factors</h4>
-              <ul className="space-y-2 text-sm">
-                {result.threat_analysis?.risk_factors?.map((factor, index) => (
-                  <li key={index} className="text-red-200 flex items-start space-x-2">
-                    <span className="text-red-400 mt-1">•</span>
-                    <span>{factor}</span>
-                  </li>
-                )) || <li className="text-gray-400">No significant risk factors detected</li>}
-              </ul>
+          {/* Main Content */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Threat Summary */}
+            <div>
+              <h3 className="font-semibold text-xl text-white mb-3">Threat Summary</h3>
+              <p className="text-gray-300">{result.threat_analysis?.summary || 'No summary available.'}</p>
             </div>
-            
-            <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-6">
-              <h4 className="text-lg font-semibold text-green-300 mb-4">✅ Security Recommendations</h4>
-              <ul className="space-y-2 text-sm">
-                {result.professional_insights?.security_recommendations?.map((rec, index) => (
-                  <li key={index} className="text-green-200 flex items-start space-x-2">
-                    <span className="text-green-400 mt-1">•</span>
-                    <span>{rec}</span>
-                  </li>
-                )) || <li className="text-gray-400">Standard monitoring procedures sufficient</li>}
-              </ul>
-            </div>
-          </div>
 
-          {/* Business Impact */}
-          <div className="bg-gradient-to-r from-orange-900/30 to-red-900/30 border border-orange-500/50 rounded-xl p-6">
-            <h4 className="text-xl font-semibold text-orange-300 mb-4">💼 Business Impact Assessment</h4>
-            <p className="text-gray-200 leading-relaxed">{result.professional_insights?.business_impact}</p>
+            {/* Intelligence Sources */}
+            <div>
+              <h3 className="font-semibold text-xl text-white mb-3">Geolocation</h3>
+              <div className="text-gray-300 space-y-1">
+                <p>Country: {safeProcessLocationData(result.intelligence_sources?.geolocation).country}</p>
+                <p>Region: {safeProcessLocationData(result.intelligence_sources?.geolocation).region}</p>
+                <p>City: {safeProcessLocationData(result.intelligence_sources?.geolocation).city}</p>
+                <p>ISP: {safeProcessLocationData(result.intelligence_sources?.geolocation).isp}</p>
+                <p>Organization: {safeProcessLocationData(result.intelligence_sources?.geolocation).organization}</p>
+                <p>Timezone: {safeProcessLocationData(result.intelligence_sources?.geolocation).timezone}</p>
+              </div>
+            </div>
+
+            {/* Additional Info */}
+            <div>
+              <h3 className="font-semibold text-xl text-white mb-3">Additional Intel</h3>
+              <div className="text-gray-300 space-y-1">
+                <p>Detected on: {result.detected_at || 'N/A'}</p>
+                <p>Source count: {result.intelligence_sources ? Object.keys(result.intelligence_sources).length : 0}</p>
+                <p>Risk Level: {getThreatDisplay(result.threat_analysis).level}</p>
+              </div>
+            </div>
           </div>
         </div>
       )}
     </div>
   );
-}
+} // ← This closing brace was missing!

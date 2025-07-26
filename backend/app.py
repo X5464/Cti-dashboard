@@ -20,7 +20,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, origins=["*"])
+CORS(app, origins=["*"], supports_credentials=True)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Configuration
@@ -50,7 +50,7 @@ active_monitors = set()
 def save_scan_to_db(scan_data):
     """Save scan data to MongoDB or in-memory backup"""
     try:
-        if scans_collection is not None:  # ✅ FIXED: Use 'is not None'
+        if scans_collection is not None:
             scans_collection.insert_one(scan_data)
             print(f"💾 Scan saved to MongoDB: {scan_data['scan_id']}")
         else:
@@ -65,7 +65,7 @@ def save_scan_to_db(scan_data):
 def get_scans_from_db(limit=50):
     """Get scans from MongoDB or in-memory backup"""
     try:
-        if scans_collection is not None:  # ✅ FIXED: Use 'is not None'
+        if scans_collection is not None:
             scans = list(scans_collection.find().sort("timestamp", -1).limit(limit))
             # Convert ObjectId to string for JSON serialization
             for scan in scans:
@@ -210,47 +210,130 @@ def get_abuseipdb_data(ip):
         return {"error": f"AbuseIPDB error: {str(e)}"}
 
 def get_geolocation_data(ip):
-    """Get geolocation data using IP-API"""
+    """Get geolocation data using multiple fallback APIs"""
+    print(f"🌍 Getting geolocation for: {ip}")
+    
+    # Validate IP first
+    if not ip or ip == "Unknown":
+        return {"error": "Invalid IP address provided"}
+    
+    # Try primary API: IP-API.com
     try:
-        print(f"🌍 Getting geolocation for: {ip}")
         url = f"http://ip-api.com/json/{ip}?fields=status,message,continent,continentCode,country,countryCode,region,regionName,city,district,zip,lat,lon,timezone,offset,currency,isp,org,as,asname,reverse,mobile,proxy,hosting,query"
         
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=15)
+        print(f"📡 IP-API Response Status: {response.status_code}")
         
         if response.status_code == 200:
             data = response.json()
+            print(f"📊 IP-API Raw Data: {data}")
+            
             if data.get("status") == "success":
                 geo_data = {
                     "ip_address": ip,
-                    "country": data.get("country", "Unknown"),
-                    "country_code": data.get("countryCode", "Unknown"),
-                    "region": data.get("regionName", "Unknown"),
-                    "city": data.get("city", "Unknown"),
-                    "zip_code": data.get("zip", "Unknown"),
-                    "continent": data.get("continent", "Unknown"),
-                    "latitude": data.get("lat", 0),
-                    "longitude": data.get("lon", 0),
-                    "timezone": data.get("timezone", "Unknown"),
-                    "isp": data.get("isp", "Unknown"),
-                    "organization": data.get("org", "Unknown"),
-                    "asn": data.get("as", "Unknown"),
-                    "asn_name": data.get("asname", "Unknown"),
-                    "reverse_dns": data.get("reverse", "Unknown"),
-                    "is_mobile": data.get("mobile", False),
-                    "is_proxy": data.get("proxy", False),
-                    "is_hosting": data.get("hosting", False),
-                    "currency": data.get("currency", "Unknown")
+                    "source": "IP-API",
+                    "country": data.get("country") or "Unknown",
+                    "country_code": data.get("countryCode") or "XX",
+                    "region": data.get("regionName") or "Unknown", 
+                    "city": data.get("city") or "Unknown",
+                    "zip_code": data.get("zip") or "Unknown",
+                    "continent": data.get("continent") or "Unknown",
+                    "latitude": float(data.get("lat", 0)) if data.get("lat") is not None else 0.0,
+                    "longitude": float(data.get("lon", 0)) if data.get("lon") is not None else 0.0,
+                    "timezone": data.get("timezone") or "Unknown",
+                    "isp": data.get("isp") or "Unknown",
+                    "organization": data.get("org") or "Unknown",
+                    "asn": data.get("as") or "Unknown",
+                    "asn_name": data.get("asname") or "Unknown",
+                    "reverse_dns": data.get("reverse") or "Unknown",
+                    "is_mobile": bool(data.get("mobile", False)),
+                    "is_proxy": bool(data.get("proxy", False)),
+                    "is_hosting": bool(data.get("hosting", False)),
+                    "currency": data.get("currency") or "Unknown",
+                    "scan_success": True
                 }
                 print(f"✅ Geolocation retrieved: {geo_data['city']}, {geo_data['country']}")
                 return geo_data
             else:
-                return {"error": f"Geolocation failed: {data.get('message', 'Unknown error')}"}
+                error_msg = data.get('message', 'IP-API query failed')
+                print(f"❌ IP-API returned error: {error_msg}")
+                # Fall through to backup APIs
         else:
-            return {"error": f"Geolocation API error: {response.status_code}"}
+            print(f"❌ IP-API HTTP error: {response.status_code}")
             
+    except requests.exceptions.Timeout:
+        print("⏰ IP-API request timed out, trying backup...")
     except Exception as e:
-        print(f"❌ Geolocation error: {str(e)}")
-        return {"error": f"Geolocation error: {str(e)}"}
+        print(f"❌ IP-API error: {str(e)}, trying backup...")
+    
+    # Fallback API: IPInfo.io
+    try:
+        print("🔄 Trying backup geolocation service...")
+        response = requests.get(f"https://ipinfo.io/{ip}/json", timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            if not data.get("error"):
+                # Parse location if available
+                loc_parts = data.get("loc", "0,0").split(",")
+                lat = float(loc_parts[0]) if len(loc_parts) >= 2 else 0.0
+                lon = float(loc_parts[1]) if len(loc_parts) >= 2 else 0.0
+                
+                geo_data = {
+                    "ip_address": ip,
+                    "source": "IPInfo",
+                    "country": data.get("country") or "Unknown",
+                    "country_code": data.get("country") or "XX", 
+                    "region": data.get("region") or "Unknown",
+                    "city": data.get("city") or "Unknown",
+                    "zip_code": data.get("postal") or "Unknown",
+                    "continent": "Unknown",
+                    "latitude": lat,
+                    "longitude": lon,
+                    "timezone": data.get("timezone") or "Unknown",
+                    "isp": "Unknown",
+                    "organization": data.get("org") or "Unknown",
+                    "asn": "Unknown",
+                    "asn_name": "Unknown", 
+                    "reverse_dns": data.get("hostname") or "Unknown",
+                    "is_mobile": False,
+                    "is_proxy": False,
+                    "is_hosting": False,
+                    "currency": "Unknown",
+                    "scan_success": True
+                }
+                print(f"✅ Backup geolocation retrieved: {geo_data['city']}, {geo_data['country']}")
+                return geo_data
+                
+    except Exception as e:
+        print(f"❌ Backup geolocation error: {str(e)}")
+    
+    # If all APIs fail, return safe default data
+    print("⚠️ All geolocation APIs failed, returning safe defaults")
+    return {
+        "ip_address": ip,
+        "source": "Default",
+        "country": "Unknown",
+        "country_code": "XX",
+        "region": "Unknown",
+        "city": "Unknown", 
+        "zip_code": "Unknown",
+        "continent": "Unknown",
+        "latitude": 0.0,
+        "longitude": 0.0,
+        "timezone": "Unknown",
+        "isp": "Unknown",
+        "organization": "Unknown",
+        "asn": "Unknown",
+        "asn_name": "Unknown",
+        "reverse_dns": "Unknown",
+        "is_mobile": False,
+        "is_proxy": False,
+        "is_hosting": False,
+        "currency": "Unknown",
+        "scan_success": False,
+        "error": "All geolocation services unavailable"
+    }
 
 def get_shodan_data(ip):
     """Get Shodan data using free InternetDB"""
@@ -506,7 +589,7 @@ def home():
         "api_status": {
             "virustotal": "✅ Active" if VT_API_KEY else "❌ Not Configured",
             "abuseipdb": "✅ Active" if ABUSEIPDB_API_KEY else "❌ Not Configured",
-            "mongodb": "✅ Connected" if mongodb_connected else "❌ Disconnected"  # ✅ FIXED
+            "mongodb": "✅ Connected" if mongodb_connected else "❌ Disconnected"
         },
         "timestamp": time.time()
     })
@@ -639,7 +722,7 @@ def get_scan_history():
         return jsonify({
             "scans": formatted_scans,
             "total": len(scans),
-            "database_status": "MongoDB" if mongodb_connected else "In-Memory",  # ✅ FIXED
+            "database_status": "MongoDB" if mongodb_connected else "In-Memory",
             "status": "success"
         })
         
@@ -714,7 +797,7 @@ def get_comprehensive_statistics():
             "system_performance": {
                 "threat_detection_accuracy": "96.8%",
                 "average_processing_time": "< 15 seconds",
-                "database_status": "MongoDB Connected" if mongodb_connected else "In-Memory Storage",  # ✅ FIXED
+                "database_status": "MongoDB Connected" if mongodb_connected else "In-Memory Storage",
                 "api_integrations": 4,
                 "uptime": "99.9%"
             },
@@ -785,6 +868,35 @@ def get_geographic_intelligence():
             "error": f"Geographic intelligence failed: {str(e)}"
         }), 500
 
+@app.route("/api/debug/location/<ip>", methods=["GET"])
+def debug_location(ip):
+    """Debug endpoint to test location APIs"""
+    try:
+        print(f"🔧 DEBUG: Testing location for {ip}")
+        
+        # Test IP-API directly
+        response = requests.get(f"http://ip-api.com/json/{ip}", timeout=10)
+        ipapi_result = {
+            "status_code": response.status_code,
+            "response": response.json() if response.status_code == 200 else response.text
+        }
+        
+        # Test our function
+        geo_result = get_geolocation_data(ip)
+        
+        return jsonify({
+            "target_ip": ip,
+            "ipapi_direct": ipapi_result,
+            "our_function": geo_result,
+            "debug_timestamp": time.time()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "error": str(e),
+            "target_ip": ip
+        }), 500
+
 # WebSocket events for real-time updates
 @socketio.on('connect')
 def handle_connect():
@@ -803,7 +915,7 @@ if __name__ == "__main__":
     print(f"🌐 Port: {port}")
     print(f"🛡️ VirusTotal: {'✅ Active' if VT_API_KEY else '❌ Missing API Key'}")
     print(f"🚨 AbuseIPDB: {'✅ Active' if ABUSEIPDB_API_KEY else '❌ Missing API Key'}")
-    print(f"💾 MongoDB: {'✅ Connected' if mongodb_connected else '❌ Using In-Memory'}")  # ✅ FIXED
+    print(f"💾 MongoDB: {'✅ Connected' if mongodb_connected else '❌ Using In-Memory'}")
     print(f"🔍 Multi-Source Intelligence: READY")
     print(f"📊 Professional Reporting: ENABLED")
     print(f"=== SYSTEM READY FOR THREAT ANALYSIS ===\n")
