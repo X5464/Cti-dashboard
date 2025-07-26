@@ -50,7 +50,7 @@ try:
     print("✅ MongoDB connection successful!")
     mongodb_connected = True
 except Exception as e:
-    print(f"❌ MongoDB connection failed: {
+    print(f"❌ MongoDB connection failed: {e}")
     scans_collection = None
     mongodb_connected = False
 
