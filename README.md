@@ -7,11 +7,6 @@
 ![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-green?style=flat-square&logo=mongodb)
 
 
-\!([https://img.shields.io/badge/CTI-Dashboard-blue?style=flat-square\&logo=security\&logoColor=white](https://www.google.com/search?q=https://img.shields.io/badge/CTI-Dashboard-blue%3Fstyle%3Dflat-square%26logo%3Dsecurity%26logoColor%3Dwhite))
-\!(https://img.shields.io/badge/React-18.2+-blue?style=flat-square\&logo=react)
-\!(https://img.shields.io/badge/MongoDB-Atlas-green?style=flat-square\&logo=mongodb)
-\!([https://img.shields.io/badge/Build-Passing-brightgreen?style=flat-square](https://www.google.com/search?q=https://img.shields.io/badge/Build-Passing-brightgreen%3Fstyle%3Dflat-square)) \#\# ✨ Visual Showcase
-
 *(Insert high-quality screenshots or a concise animated GIF here demonstrating the dashboard's user interface and key functionalities. This is crucial for immediate visual understanding of the "Professional UI - Modern glass morphism design" and how the universal threat scanner, detailed reports, and dark theme appear in action.)*
 
 ## 📋 Overview
