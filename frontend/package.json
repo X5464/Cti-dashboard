@@ -4,10 +4,14 @@
   "private": true,
   "proxy": "http://localhost:8000",
   "dependencies": {
-    "axios": "^1.4.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+<<<<<<< HEAD
     "react-scripts": "^5.0.1",
+=======
+    "react-scripts": "5.0.1",
+    "axios": "^1.4.0",
+>>>>>>> 1b714508bb07f6e864797d78d42b5ed72004fccb
     "socket.io-client": "^4.7.2",
     "web-vitals": "^2.1.4"
   },
