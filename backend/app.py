@@ -15,6 +15,18 @@ import random
 import socket
 from pymongo import MongoClient
 from dotenv import load_dotenv
+from bson import ObjectId
+
+def convert_objectid_to_string(data):
+    """Convert MongoDB ObjectId to string for JSON serialization"""
+    if isinstance(data, ObjectId):
+        return str(data)
+    elif isinstance(data, dict):
+        return {key: convert_objectid_to_string(value) for key, value in data.items()}
+    elif isinstance(data, list):
+        return [convert_objectid_to_string(item) for item in data]
+    else:
+        return data
 
 # Load environment variables
 load_dotenv()
@@ -38,8 +50,7 @@ try:
     print("✅ MongoDB connection successful!")
     mongodb_connected = True
 except Exception as e:
-    print(f"❌ MongoDB connection failed: {e}")
-    # Fallback to in-memory storage
+    print(f"❌ MongoDB connection failed: {
     scans_collection = None
     mongodb_connected = False
 
@@ -51,7 +62,9 @@ def save_scan_to_db(scan_data):
     """Save scan data to MongoDB or in-memory backup"""
     try:
         if scans_collection is not None:
-            scans_collection.insert_one(scan_data)
+            # Clean the data before saving to avoid ObjectId issues
+            cleaned_data = convert_objectid_to_string(scan_data)
+            scans_collection.insert_one(cleaned_data)
             print(f"💾 Scan saved to MongoDB: {scan_data['scan_id']}")
         else:
             scan_history.append(scan_data)
@@ -68,9 +81,8 @@ def get_scans_from_db(limit=50):
         if scans_collection is not None:
             scans = list(scans_collection.find().sort("timestamp", -1).limit(limit))
             # Convert ObjectId to string for JSON serialization
-            for scan in scans:
-                scan['_id'] = str(scan['_id'])
-            return scans
+            cleaned_scans = convert_objectid_to_string(scans)
+            return cleaned_scans
         else:
             return scan_history[-limit:][::-1]
     except Exception as e:
@@ -676,7 +688,9 @@ def comprehensive_threat_lookup():
         print(f"Threat Score: {threat_analysis['score']}/100 ({threat_analysis['threat_level']})")
         print(f"Confidence: {threat_analysis['confidence']}%")
         
-        return jsonify(result)
+        # *** CRITICAL FIX: Convert ObjectIds before returning JSON ***
+        cleaned_result = convert_objectid_to_string(result)
+        return jsonify(cleaned_result)
         
     except Exception as e:
         print(f"❌ Critical analysis error: {str(e)}")
