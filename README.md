@@ -156,6 +156,13 @@ The frontend application will open in your default web browser, usually at `http
 
 You can now use the dashboard to:
 
+![1](https://github.com/user-attachments/assets/d0e0b355-71c4-439a-b37e-48270a41cc17)
+
+![2](https://github.com/user-attachments/assets/c8bff3b5-019d-4735-ba74-7e008a976815)
+![3](https://github.com/user-attachments/assets/c9236df6-0b69-4bfa-9d3f-574cfe0cf589)
+
+
+
   * Enter an IP address, domain, or URL into the universal threat scanner.
   * View detailed analysis reports from VirusTotal and AbuseIPDB.
   * Track historical scan data and statistics.
