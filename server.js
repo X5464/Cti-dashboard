@@ -12,8 +12,8 @@ app.use(express.json());
 app.use(express.static('public'));
 
 // API Keys (from environment variables for security)
-const VIRUSTOTAL_API_KEY = process.env.VIRUSTOTAL_API_KEY || '3f839e2662f6cbd73c75f5353dca2353e38e45959543749f96576895f7172b20';
-const ABUSEIPDB_API_KEY = process.env.ABUSEIPDB_API_KEY || 'cc1234731c53e2f3ee7198133b9dc8385cccff5db45a5bfb1f1bb07e838787d87daccf09372dac10';
+const VIRUSTOTAL_API_KEY = process.env.VIRUSTOTAL_API_KEY || ;
+const ABUSEIPDB_API_KEY = process.env.ABUSEIPDB_API_KEY || ;
 
 // ============================================
 // THREAT INTELLIGENCE APIs
